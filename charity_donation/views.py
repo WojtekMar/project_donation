@@ -1,35 +1,73 @@
+import json
+
 from django.contrib.auth import logout
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.views import LoginView
+from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render, redirect
 from django.db.models import Count, Sum
 from django.urls import reverse
 from django.views import View
 from django.views.generic import ListView, TemplateView, FormView, CreateView, RedirectView
-from charity_donation.forms import RegisterForm, LoginForm
+from django.views.generic.edit import FormMixin
+
+from charity_donation.forms import RegisterForm, LoginForm, DonationForm
 from charity_donation.models import Donation, Institution, CustomUser, Category
 
 
 class LandingPage(TemplateView):
-    def render_to_response(self, context):
-        # Liczenie worków i wspartych organizacji
+    model = Institution
+    template_name = 'index.html'
+    extra_context = {'foundations': model.objects.filter(type=0),
+                     'organizations': model.objects.filter(type=1),
+                     'locals': model.objects.filter(type=2),
+                     }
+
+    def get_context_data(self, **kwargs):
         donations = Donation.objects.aggregate(bags=Sum('quantity'))
         quantity_of_organizations = Donation.objects.aggregate(institution=Count('institution', distinct=True))
-        foundations = Institution.objects.filter(type=0)
-        organizations = Institution.objects.filter(type=1)
-        local = Institution.objects.filter(type=2)
-        context = {**donations, **quantity_of_organizations, 'foundations': foundations, 'organizations': organizations,
-                   'local': local}
-
-        return self.response_class(
-            request=self.request,
-            template='index.html',
-            context=context,
-            using=self.template_engine,
-        )
+        context = super().get_context_data(**donations, **quantity_of_organizations, **kwargs)
+        return context
 
 
-class AddDonationView(ListView):
-    pass
+class AddDonationView(LoginRequiredMixin, ListView):
+    model = Category
+    template_name = 'form.html'
+    context_object_name = 'category_name'
+    extra_context = {'institutions': Institution.objects.all(),
+                     }
+
+    def post(self, request):
+        if request.method == 'POST':
+            response_data = {}
+            bags = request.POST['bags']
+            categories = request.POST.getlist('categories')
+            organization = request.POST['organization']
+            address = request.POST['address']
+            city = request.POST['city']
+            postcode = request.POST['postcode']
+            phone = request.POST['phone']
+            data = request.POST['data']
+            time = request.POST['time']
+            more_info = request.POST['more_info']
+
+            donation = Donation(quantity=bags,
+                                address=address,
+                                institution_id=organization,
+                                phone_number=phone,
+                                city=city,
+                                zip_code=postcode,
+                                pick_up_date=data,
+                                pick_up_time=time,
+                                pick_up_comment=more_info,
+                                user_id=request.user.id)
+            donation.save()
+
+            for category in categories:
+                donation.categories.add(category)
+
+            return JsonResponse(response_data)
+
 
 class LoginUserView(LoginView):
     template_name = 'login.html'
