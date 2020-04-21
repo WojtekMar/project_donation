@@ -1,4 +1,3 @@
-import json
 
 from django.contrib.auth import logout
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -9,7 +8,6 @@ from django.db.models import Count, Sum
 from django.urls import reverse
 from django.views import View
 from django.views.generic import ListView, TemplateView, FormView, CreateView, RedirectView
-from django.views.generic.edit import FormMixin
 
 from charity_donation.forms import RegisterForm, LoginForm, DonationForm
 from charity_donation.models import Donation, Institution, CustomUser, Category

@@ -309,9 +309,9 @@ document.addEventListener("DOMContentLoaded", function () {
          */
         // AJAX for posting
         create_post() {
-            var csrftoken = $("[name=csrfmiddlewaretoken]").val();
-            var form = $('#donation_form');
-            var formData = form.serialize();
+            let csrftoken = $("[name=csrfmiddlewaretoken]").val();
+            let form = $('#donation_form');
+            let formData = form.serialize();
             $.ajax({
                 url: "/donation/", // the endpoint
                 type: "POST", // http method
